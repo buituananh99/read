@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Đọc và Sao Chép Nội Dung Tệp a.txt</title>
+</head>
+
+<body>
+    <style>
+        div {
+            padding: 20px 50px;
+            width: 200px;
+        }
+
+        .selected {
+            background-color: gray;
+        }
+    </style>
+    <h1>Nội Dung Tệp a.txt</h1>
+    <input type="file" id="fileInput">
+    <input type="number" id="inum" value="1"></input>
+    <button id="ReadFile">Read</button>
+    <pre id="fileContent"></pre>
+
+    <script>
+        document.getElementById('ReadFile').addEventListener('click', () => {
+            nameFile = document.getElementById('inum').value
+            fetch(`${nameFile}.txt`)
+                .then(response => response.text())
+                .then(data => {
+                    const lines = data.split('\n');
+
+                    const fileContentElement = document.getElementById('fileContent');
+                    fileContentElement.innerHTML = ''; // Xóa nội dung cũ
+
+                    lines.forEach((line, index) => {
+                        const lineElement = document.createElement('div');
+                        lineElement.textContent = line;
+                        lineElement.style.cursor = 'pointer';
+
+                        // Sự kiện click để sao chép nội dung dòng khi được nhấp vào
+                        lineElement.addEventListener('click', function () {
+                            copyToClipboard(line);
+
+                            const allLineElements = document.querySelectorAll('#fileContent div');
+                            allLineElements.forEach(function (el) {
+                                el.classList.remove('selected');
+                            });
+                            // Thêm lớp "selected" vào dòng được chọn
+                            lineElement.classList.add('selected');
+                        });
+
+                        fileContentElement.appendChild(lineElement);
+                    });
+
+                })
+                .catch(error => {
+                    console.error('Đã xảy ra lỗi: ', error);
+                });
+        })
+
+        // Lắng nghe sự kiện khi người dùng chọn tệp
+        document.getElementById('fileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+
+                // Đọc nội dung của tệp khi tệp đã được chọn
+                reader.onload = function (e) {
+                    const fileContent = e.target.result;
+                    const lines = fileContent.split('\n');
+
+                    // Hiển thị nội dung và thêm sự kiện click vào mỗi dòng
+                    const fileContentElement = document.getElementById('fileContent');
+                    fileContentElement.innerHTML = ''; // Xóa nội dung cũ
+
+                    lines.forEach((line, index) => {
+                        const lineElement = document.createElement('div');
+                        lineElement.textContent = line;
+                        lineElement.style.cursor = 'pointer';
+
+                        // Sự kiện click để sao chép nội dung dòng khi được nhấp vào
+                        lineElement.addEventListener('click', function () {
+                            copyToClipboard(line);
+
+                            const allLineElements = document.querySelectorAll('#fileContent div');
+                            allLineElements.forEach(function (el) {
+                                el.classList.remove('selected');
+                            });
+                            // Thêm lớp "selected" vào dòng được chọn
+                            lineElement.classList.add('selected');
+                        });
+
+                        fileContentElement.appendChild(lineElement);
+                    });
+                };
+
+                // Bắt đầu đọc tệp
+                reader.readAsText(file);
+            }
+        });
+
+        // Hàm sao chép nội dung vào clipboard
+        function copyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+        }
+    </script>
+</body>
+
+</html>
