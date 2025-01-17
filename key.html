@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Load JSON from JS</title>
+  <title>Display JSON as API</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
-  <div id="content"></div>
-
   <script>
     // Dữ liệu JSON
     const jsonData = {
@@ -15,21 +15,8 @@
       "vn88": "https://vn88"
     };
 
-    // Lấy phần tử HTML nơi cần chèn nội dung
-    const contentElement = document.getElementById("content");
-
-    // Tạo danh sách HTML từ dữ liệu JSON
-    let htmlContent = "<ul>"; // Bắt đầu danh sách
-    for (const [key, value] of Object.entries(jsonData)) {
-      htmlContent += `<li><a href="${value}" target="_blank">${key}</a></li>`;
-    }
-    htmlContent += "</ul>"; // Kết thúc danh sách
-
-    // Chèn danh sách HTML vào trang
-    contentElement.innerHTML = htmlContent;
-
-    // In ra console để kiểm tra
-    console.log("Nội dung được chèn:", htmlContent);
+    // Hiển thị JSON dưới dạng văn bản trên trang
+    document.body.innerHTML = `<pre>${JSON.stringify(jsonData, null, 2)}</pre>`;
   </script>
 </body>
 </html>
