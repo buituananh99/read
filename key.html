@@ -5,26 +5,30 @@
 </head>
 <body>
   <div id="content"></div>
-  <h1>haha</h1>
   <script>
-    // Dữ liệu JSON được định nghĩa trong JavaScript
+    // Dữ liệu JSON
     const jsonData = {
-      188bet:"https://188bet",
-      m88:"https://188bet",
-      fb88:"https://fb88",
-      vn88:"https://vn88"
+      188bet: "https://188bet",
+      m88: "https://m88",
+      fb88: "https://fb88",
+      vn88: "https://vn88"
     };
 
     // Lấy phần tử HTML nơi cần chèn nội dung
     const contentElement = document.getElementById("content");
 
-    // Chèn nội dung HTML từ jsonData vào phần tử
-    if (jsonData.html) {
-      contentElement.innerHTML = jsonData.html;
-      console.log("Nội dung được chèn:", jsonData.html);
-    } else {
-      console.error("Không tìm thấy dữ liệu HTML trong jsonData");
+    // Tạo danh sách HTML từ dữ liệu JSON
+    let htmlContent = "<ul>"; // Bắt đầu danh sách
+    for (const [key, value] of Object.entries(jsonData)) {
+      htmlContent += `<li><a href="${value}" target="_blank">${key}</a></li>`;
     }
+    htmlContent += "</ul>"; // Kết thúc danh sách
+
+    // Chèn danh sách HTML vào trang
+    contentElement.innerHTML = htmlContent;
+
+    // In ra console để kiểm tra
+    console.log("Nội dung được chèn:", htmlContent);
   </script>
 </body>
 </html>
