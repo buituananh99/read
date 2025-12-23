@@ -331,61 +331,63 @@
         async function downloadFile(url, type, btn) {
             const originalText = btn.innerHTML;
             const fileName = randomFilename(type);
-            const mimeType = type === 'video' ? 'video/mp4' : 'image/jpeg';
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-            // 1. Mở tab giữ chỗ ngay lập tức để tránh bị chặn trên iOS
-            let newTab;
-            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                newTab = window.open('about:blank', '_blank');
-                if (newTab) {
-                    newTab.document.write(`
-                <body style="background:#0f172a;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
-                    <div style="border:3px solid #38bdf8;border-top:3px solid transparent;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;"></div>
-                    <p style="margin-top:15px;">Đang chuẩn bị file <b>${fileName}</b>...</p>
-                    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
-                </body>
-            `);
+            // Đối với iOS: Mở video trực tiếp và hướng dẫn user
+            if (isIOS) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Đang mở...';
+
+                // Mở video trong tab mới
+                const newTab = window.open(url, '_blank');
+
+                if (!newTab) {
+                    alert('⚠️ Popup bị chặn! Vui lòng cho phép popup trong cài đặt trình duyệt.');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    return;
                 }
+
+                // Hiển thị hướng dẫn cho user iOS
+                setTimeout(() => {
+                    alert('📱 HƯỚNG DẪN LƯU VIDEO TRÊN iOS:\n\n' +
+                        '1️⃣ Video đã mở trong tab mới\n' +
+                        '2️⃣ Nhấn GIỮ vào video\n' +
+                        '3️⃣ Chọn "Lưu Video" hoặc "Save Video"\n' +
+                        '4️⃣ Video sẽ được lưu vào thư viện ảnh của bạn\n\n' +
+                        '💡 Đối với ảnh: Nhấn giữ và chọn "Lưu vào Ảnh"');
+                    btn.innerHTML = '✅ Đã mở!';
+                    btn.disabled = false;
+                    setTimeout(() => btn.innerHTML = originalText, 3000);
+                }, 800);
+
+                return;
             }
 
+            // Đối với Android/PC: Tải file bình thường
             try {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Đang xử lý...';
+                btn.innerHTML = '<span class="loading"></span> Đang tải...';
 
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Fetch failed');
                 const blob = await res.blob();
 
-                // 2. CHÌA KHÓA: Tạo File object thay vì Blob để giữ tên và định dạng
-                const file = new File([blob], fileName, { type: mimeType });
-                const blobUrl = URL.createObjectURL(file);
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
 
-                if (newTab) {
-                    // Đối với iOS: Chuyển hướng sang URL của File đã tạo
-                    newTab.location.href = blobUrl;
-
-                    // Một số phiên bản iOS cũ cần thêm một chút "thời gian" để nhận diện
-                    setTimeout(() => {
-                        if (newTab.document.title !== fileName) {
-                            newTab.document.title = fileName;
-                        }
-                    }, 500);
-                } else {
-                    // Đối với Android/PC: Dùng thẻ <a> ẩn
-                    const a = document.createElement('a');
-                    a.href = blobUrl;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(blobUrl);
-                }
-
-                btn.innerHTML = '✅ Xong!';
+                btn.innerHTML = '✅ Đã tải!';
             } catch (err) {
                 console.error(err);
-                if (newTab) newTab.location.href = url;
-                btn.innerHTML = '❌ Lỗi tải';
+                // Fallback: Mở trực tiếp URL
+                window.open(url, '_blank');
+                btn.innerHTML = '⚠️ Đã mở trên tab mới';
             } finally {
                 btn.disabled = false;
                 setTimeout(() => btn.innerHTML = originalText, 3000);
