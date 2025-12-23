@@ -332,62 +332,54 @@
             const originalText = btn.innerHTML;
             const fileName = randomFilename(type);
             const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const mimeType = type === 'video' ? 'video/mp4' : 'image/jpeg';
 
-            // Đối với iOS: Mở video trực tiếp và hướng dẫn user
-            if (isIOS) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Đang mở...';
-
-                // Mở video trong tab mới
-                const newTab = window.open(url, '_blank');
-
-                if (!newTab) {
-                    alert('⚠️ Popup bị chặn! Vui lòng cho phép popup trong cài đặt trình duyệt.');
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    return;
-                }
-
-                // Hiển thị hướng dẫn cho user iOS
-                setTimeout(() => {
-                    alert('📱 HƯỚNG DẪN LƯU VIDEO TRÊN iOS:\n\n' +
-                        '1️⃣ Video đã mở trong tab mới\n' +
-                        '2️⃣ Nhấn GIỮ vào video\n' +
-                        '3️⃣ Chọn "Lưu Video" hoặc "Save Video"\n' +
-                        '4️⃣ Video sẽ được lưu vào thư viện ảnh của bạn\n\n' +
-                        '💡 Đối với ảnh: Nhấn giữ và chọn "Lưu vào Ảnh"');
-                    btn.innerHTML = '✅ Đã mở!';
-                    btn.disabled = false;
-                    setTimeout(() => btn.innerHTML = originalText, 3000);
-                }, 800);
-
-                return;
-            }
-
-            // Đối với Android/PC: Tải file bình thường
             try {
                 btn.disabled = true;
                 btn.innerHTML = '<span class="loading"></span> Đang tải...';
 
+                // Fetch file về dưới dạng blob
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Fetch failed');
                 const blob = await res.blob();
 
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(blobUrl);
-
-                btn.innerHTML = '✅ Đã tải!';
+                // Đối với iOS: Dùng Web Share API
+                if (isIOS && navigator.share) {
+                    try {
+                        const file = new File([blob], fileName, { type: mimeType });
+                        await navigator.share({
+                            files: [file],
+                            title: type === 'video' ? 'Video TikTok' : 'Ảnh TikTok',
+                            text: 'Tải từ TikTok Downloader'
+                        });
+                        btn.innerHTML = '✅ Đã chia sẻ!';
+                    } catch (shareErr) {
+                        // Nếu user hủy share hoặc lỗi
+                        if (shareErr.name === 'AbortError') {
+                            btn.innerHTML = '❌ Đã hủy';
+                        } else {
+                            // Fallback: Mở URL trực tiếp
+                            window.open(url, '_blank');
+                            btn.innerHTML = '⚠️ Đã mở tab mới';
+                        }
+                    }
+                } else {
+                    // Đối với Android/PC: Tải file thông thường
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                    btn.innerHTML = '✅ Đã tải!';
+                }
             } catch (err) {
                 console.error(err);
-                // Fallback: Mở trực tiếp URL
+                // Fallback cuối cùng: Mở URL gốc
                 window.open(url, '_blank');
-                btn.innerHTML = '⚠️ Đã mở trên tab mới';
+                btn.innerHTML = '⚠️ Mở tab mới';
             } finally {
                 btn.disabled = false;
                 setTimeout(() => btn.innerHTML = originalText, 3000);
