@@ -330,17 +330,22 @@
 
         async function downloadFile(url, type, btn) {
             const originalText = btn.innerHTML;
+            const fileName = randomFilename(type);
+            const mimeType = type === 'video' ? 'video/mp4' : 'image/jpeg';
 
-            // BƯỚC 1: Mở ngay một tab mới để "giữ chỗ" (Tránh bị Safari chặn)
-            // Chúng ta mở tab trước khi đợi fetch, Safari sẽ coi đây là hành động hợp lệ.
+            // 1. Mở tab giữ chỗ ngay lập tức để tránh bị chặn trên iOS
             let newTab;
             if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
                 newTab = window.open('about:blank', '_blank');
-                if (!newTab) {
-                    alert('Vui lòng cho phép hiện cửa sổ bật lên để tải video');
-                    return;
+                if (newTab) {
+                    newTab.document.write(`
+                <body style="background:#0f172a;color:white;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
+                    <div style="border:3px solid #38bdf8;border-top:3px solid transparent;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;"></div>
+                    <p style="margin-top:15px;">Đang chuẩn bị file <b>${fileName}</b>...</p>
+                    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+                </body>
+            `);
                 }
-                newTab.document.write('<title>Đang xử lý...</title><body style="background:#0f172a;color:white;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;"><div>🚀 Đang chuẩn bị tệp tin, vui lòng chờ...</div></body>');
             }
 
             try {
@@ -351,41 +356,38 @@
                 if (!res.ok) throw new Error('Fetch failed');
                 const blob = await res.blob();
 
-                // Tạo link từ Blob
-                const blobUrl = URL.createObjectURL(blob);
+                // 2. CHÌA KHÓA: Tạo File object thay vì Blob để giữ tên và định dạng
+                const file = new File([blob], fileName, { type: mimeType });
+                const blobUrl = URL.createObjectURL(file);
 
                 if (newTab) {
-                    // BƯỚC 2: Đối với iOS - Chuyển hướng tab đã mở sang tệp tin
-                    // Ép kiểu octet-stream để hiện thông báo "Tải về"
-                    const fileBlob = new Blob([blob], { type: 'application/octet-stream' });
-                    const finalUrl = URL.createObjectURL(fileBlob);
-                    newTab.location.href = finalUrl;
+                    // Đối với iOS: Chuyển hướng sang URL của File đã tạo
+                    newTab.location.href = blobUrl;
+
+                    // Một số phiên bản iOS cũ cần thêm một chút "thời gian" để nhận diện
+                    setTimeout(() => {
+                        if (newTab.document.title !== fileName) {
+                            newTab.document.title = fileName;
+                        }
+                    }, 500);
                 } else {
-                    // Đối với Android/PC - Tải trực tiếp như bình thường
+                    // Đối với Android/PC: Dùng thẻ <a> ẩn
                     const a = document.createElement('a');
                     a.href = blobUrl;
-                    a.download = randomFilename(type);
+                    a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
                 }
 
-                setTimeout(() => {
-                    btn.innerHTML = '✅ Xong!';
-                    btn.disabled = false;
-                }, 1000);
-
+                btn.innerHTML = '✅ Xong!';
             } catch (err) {
                 console.error(err);
-                const fallbackMsg = 'Lỗi! Nhấp vào để mở trực tiếp';
-                if (newTab) {
-                    newTab.location.href = url; // Nếu lỗi fetch, mở link gốc
-                } else {
-                    window.open(url, '_blank');
-                }
-                btn.innerHTML = fallbackMsg;
-                btn.disabled = false;
+                if (newTab) newTab.location.href = url;
+                btn.innerHTML = '❌ Lỗi tải';
             } finally {
+                btn.disabled = false;
                 setTimeout(() => btn.innerHTML = originalText, 3000);
             }
         }
