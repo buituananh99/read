@@ -330,39 +330,46 @@
 
         async function downloadFile(url, type, btn) {
             const originalText = btn.innerHTML;
-            const popup = window.open('about:blank', '_blank');
+            // Không cần mở popup trước nữa, chúng ta sẽ xử lý trực tiếp bằng Blob
 
             try {
                 btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Đang tải...';
+                btn.innerHTML = '<span class="loading"></span> Đang xử lý...';
 
                 const res = await fetch(url);
-                if (!res.ok) throw new Error();
+                if (!res.ok) throw new Error('Không thể fetch dữ liệu');
 
                 const blob = await res.blob();
-                const blobUrl = URL.createObjectURL(blob);
+
+                // CHỐT CHẶN QUAN TRỌNG: Ép kiểu MIME sang octet-stream để iOS hiện nút "Tải về"
+                const fileBlob = new Blob([blob], { type: 'application/octet-stream' });
+                const blobUrl = URL.createObjectURL(fileBlob);
 
                 const a = document.createElement('a');
                 a.href = blobUrl;
                 a.download = randomFilename(type);
+
+                // Thêm vào DOM để đảm bảo hoạt động trên mọi trình duyệt
                 document.body.appendChild(a);
                 a.click();
 
+                // Dọn dẹp
                 setTimeout(() => {
                     URL.revokeObjectURL(blobUrl);
                     document.body.removeChild(a);
-                    btn.innerHTML = '✅ Đã xong';
+                    btn.innerHTML = '✅ Đã tải xong';
                     btn.disabled = false;
-                    if (popup) popup.close();
-                }, 1000);
+                }, 1500);
 
-                setTimeout(() => btn.innerHTML = originalText, 3000);
+                setTimeout(() => btn.innerHTML = originalText, 4000);
 
             } catch (err) {
-                if (popup) popup.location.href = url;
-                else location.href = url;
-                btn.innerHTML = originalText;
+                console.error('Lỗi tải xuống:', err);
+                // Fallback: Nếu fetch bị chặn (do CORS), mở link trực tiếp trong tab mới
+                window.open(url, '_blank');
+                btn.innerHTML = '⚠️ Mở trong tab mới';
                 btn.disabled = false;
+                setTimeout(() => btn.innerHTML = originalText, 3000);
             }
         }
     </script>
