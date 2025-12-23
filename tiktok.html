@@ -79,7 +79,6 @@
             color: #fff;
             font-size: 15px;
             min-width: 0;
-            /* Fix overflow on mobile */
         }
 
         /* Buttons Styles */
@@ -143,7 +142,25 @@
         #result {
             margin-top: 20px;
             display: grid;
-            gap: 10px;
+            gap: 16px;
+        }
+
+        .result-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .image-preview {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            display: block;
+            background: #0f172a;
+            max-height: 400px;
+            object-fit: cover;
         }
 
         .download-item {
@@ -159,6 +176,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            border: none;
         }
 
         .download-item.video {
@@ -249,8 +267,8 @@
         <div id="result"></div>
 
         <div class="note">
-            💡 <b>PC/Android:</b> Tải trực tiếp <br>
-            🍎 <b>iOS:</b> Video sẽ mở trong tab mới, nhấn giữ để Lưu.
+            💡 <b>PC/Android:</b> Tải về máy tự động <br>
+            🍎 <b>iOS:</b> Nhấn nút → Chọn "Save to Files" hoặc "Lưu ảnh"
         </div>
     </div>
 
@@ -321,11 +339,29 @@
 
         function renderDownloadBtn(url, type, text, className) {
             const result = document.getElementById('result');
+
+            // Tạo card chứa preview (nếu là ảnh) + button
+            const card = document.createElement('div');
+            card.className = 'result-card';
+
+            // Nếu là ảnh, thêm preview
+            if (type === 'image') {
+                const img = document.createElement('img');
+                img.className = 'image-preview';
+                img.src = url;
+                img.alt = text;
+                img.loading = 'lazy';
+                card.appendChild(img);
+            }
+
+            // Tạo nút tải
             const btn = document.createElement('button');
             btn.className = `download-item ${className}`;
             btn.innerHTML = text;
             btn.onclick = () => downloadFile(url, type, btn);
-            result.appendChild(btn);
+
+            card.appendChild(btn);
+            result.appendChild(card);
         }
 
         async function downloadFile(url, type, btn) {
